@@ -47,7 +47,8 @@ RULES:
 4. sort timeline by "at" (seconds); an object must "appear" before it is connected or animated.
 5. prefer a clear flow: left-to-right or top-down. Fan-out (one to many) puts the
    parent at the top and children spread across a row below.
-6. keep it focused: 3-8 objects is ideal.
+6. keep it focused: 3-8 objects is ideal. Keep the timeline tight: at most 16
+   steps, no redundant or repeated steps.
 7. output MUST be valid JSON: double-quoted keys, no trailing commas, no comments.
 
 EXAMPLE

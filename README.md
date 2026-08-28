@@ -73,9 +73,20 @@ copy .env.example .env      # optional: add an OpenAI key, else the offline mock
 uvicorn app.main:app --reload --port 8000
 ```
 
-The backend runs with **zero configuration** thanks to the offline mock LLM. Add `OPENAI_API_KEY` (or point at a local Ollama) for real generation.
+The backend runs with **zero configuration** thanks to the offline mock generator — but for real AI you have two easy options:
 
-Optional Whisper support (voice input):
+**Recommended: fully local AI, no API keys** — using [Ollama](https://ollama.com):
+
+```powershell
+ollama serve                       # start the local model server
+ollama pull qwen2.5-coder:1.5b     # small + fast (~8s/scene); use :7b for higher quality
+```
+
+Then in `backend/.env` set `LLM_PROVIDER=ollama` and `OLLAMA_MODEL=qwen2.5-coder:1.5b`.
+
+**Or OpenAI** — put a valid `OPENAI_API_KEY` in `backend/.env` and set `LLM_PROVIDER=openai` (or `auto`).
+
+**Voice input (local Whisper)** — transcribes speech on the backend, no keys:
 
 ```powershell
 pip install -r requirements-whisper.txt
@@ -104,7 +115,7 @@ All backend settings are environment variables (see [backend/.env.example](backe
 | `OPENAI_API_KEY` | — | Enables the OpenAI provider |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Chat model for DSL generation |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama endpoint |
-| `OLLAMA_MODEL` | `qwen2.5-coder` | Ollama model |
+| `OLLAMA_MODEL` | `qwen2.5-coder:1.5b` | Ollama model (`:1.5b` fast, `:7b` higher quality) |
 | `WHISPER_MODEL` | `base` | faster-whisper model size |
 | `CORS_ORIGINS` | `http://localhost:5173` | Allowed frontend origins |
 

@@ -66,6 +66,8 @@ class OllamaProvider(LLMProvider):
         self._model = settings.ollama_model
         self._temperature = settings.llm_temperature
         self._timeout = settings.llm_timeout
+        self._max_tokens = settings.llm_max_tokens
+        self._keep_alive = settings.ollama_keep_alive
 
     async def available(self) -> bool:
         try:
@@ -79,8 +81,13 @@ class OllamaProvider(LLMProvider):
         payload = {
             "model": self._model,
             "stream": False,
-            "format": "json",
-            "options": {"temperature": self._temperature},
+            # NOTE: Ollama's grammar-constrained `format: "json"` is very slow here;
+            # we rely on the prompt + robust JSON extraction downstream instead.
+            "keep_alive": self._keep_alive,
+            "options": {
+                "temperature": self._temperature,
+                "num_predict": self._max_tokens,
+            },
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},

@@ -19,9 +19,11 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     openai_base_url: str = ""
     ollama_host: str = "http://localhost:11434"
-    ollama_model: str = "qwen2.5-coder"
+    ollama_model: str = "qwen2.5-coder:1.5b"
     llm_temperature: float = 0.3
     llm_timeout: float = 60.0
+    llm_max_tokens: int = 1536
+    ollama_keep_alive: str = "30m"
 
     # ----- Speech-to-text -----
     whisper_model: str = "base"
