@@ -79,10 +79,11 @@ The backend runs with **zero configuration** thanks to the offline mock generato
 
 ```powershell
 ollama serve                       # start the local model server
-ollama pull qwen2.5-coder:1.5b     # small + fast (~8s/scene); use :7b for higher quality
+ollama pull qwen2.5-coder:7b       # best quality (~35s/scene on a 16GB GPU)
+# or, for ~8s/scene on modest hardware:  ollama pull qwen2.5-coder:1.5b
 ```
 
-Then in `backend/.env` set `LLM_PROVIDER=ollama` and `OLLAMA_MODEL=qwen2.5-coder:1.5b`.
+Then in `backend/.env` set `LLM_PROVIDER=ollama` and `OLLAMA_MODEL=qwen2.5-coder:7b`.
 
 **Or OpenAI** — put a valid `OPENAI_API_KEY` in `backend/.env` and set `LLM_PROVIDER=openai` (or `auto`).
 
@@ -115,7 +116,7 @@ All backend settings are environment variables (see [backend/.env.example](backe
 | `OPENAI_API_KEY` | — | Enables the OpenAI provider |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Chat model for DSL generation |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama endpoint |
-| `OLLAMA_MODEL` | `qwen2.5-coder:1.5b` | Ollama model (`:1.5b` fast, `:7b` higher quality) |
+| `OLLAMA_MODEL` | `qwen2.5-coder:7b` | Ollama model (`:7b` best quality, `:1.5b` ~4x faster) |
 | `WHISPER_MODEL` | `base` | faster-whisper model size |
 | `CORS_ORIGINS` | `http://localhost:5173` | Allowed frontend origins |
 
