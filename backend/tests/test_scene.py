@@ -136,3 +136,32 @@ def test_validator_repairs_bad_scene():
     assert any(s.action == ActionType.appear and s.target == "b" for s in repaired.timeline)
     _scene_is_consistent(repaired)
     assert repaired.warnings
+
+
+def test_layout_relaxation_pushes_object_off_edge():
+    from app.scene.validator import _point_segment
+
+    registry = get_registry()
+    scene = Scene(
+        title="load balancer",
+        objects=[
+            SceneObject(id="lb", type="networking.load_balancer", label="LB", position=Position(x=640, y=110)),
+            SceneObject(id="s1", type="networking.server", label="S1", position=Position(x=300, y=440)),
+            SceneObject(id="s2", type="networking.server", label="S2", position=Position(x=640, y=440)),
+            SceneObject(id="s3", type="networking.server", label="S3", position=Position(x=980, y=440)),
+            # cache placed right on the lb -> s2 vertical line (the reported bug)
+            SceneObject(id="cache", type="databases.redis", label="Cache", position=Position(x=640, y=250)),
+        ],
+        edges=[
+            SceneEdge(id="e1", from_="lb", to="s1"),
+            SceneEdge(id="e2", from_="lb", to="s2"),
+            SceneEdge(id="e3", from_="lb", to="s3"),
+        ],
+    )
+    repaired = validate_and_repair(scene, registry)
+    pos = {o.id: o.position for o in repaired.objects}
+    dist, *_ = _point_segment(pos["cache"].x, pos["cache"].y, pos["lb"].x, pos["lb"].y, pos["s2"].x, pos["s2"].y)
+    assert dist > 60, f"cache still overlaps the lb->s2 edge (dist={dist:.1f})"
+    for obj in repaired.objects:
+        assert 40 <= obj.position.x <= 1240
+        assert 40 <= obj.position.y <= 680
