@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #0b1020;
+  color: #e6e9f5;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  /* Scene object label under each icon */
+  .scene-object-label {
+    font-size: 15px;
+    font-weight: 600;
+    fill: #cbd4f5;
+    paint-order: stroke;
+    stroke: #0b1020;
+    stroke-width: 3px;
+    stroke-linejoin: round;
+  }
+
+  /* Status ring around an object, animated by the engine */
+  .status-ring {
+    fill: none;
+    stroke-width: 4;
+    opacity: 0;
+  }
+
+  /* Edge path base */
+  .edge-line {
+    fill: none;
+    stroke: #4b5578;
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  /* Animated traffic overlay on an edge */
+  .edge-traffic {
+    fill: none;
+    stroke: #38bdf8;
+    stroke-width: 4;
+    stroke-linecap: round;
+    opacity: 0;
+  }
+}
+
+/* Thin scrollbars for panels */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2a3252;
+  border-radius: 4px;
+}
