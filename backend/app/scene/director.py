@@ -61,6 +61,7 @@ _SOURCE_TYPES = {
     "kafka", "topic", "service", "broker", "kafka_broker", "load_balancer",
     "api_gateway", "coordinator", "producer", "user", "client",
 }
+_GENERIC_TYPES = {"generic.box", "generic.cache", "generic.database"}
 
 
 
@@ -146,10 +147,18 @@ def compile_storyboard(board: Storyboard, registry: AssetRegistry, text: str) ->
         if not item.id or item.id in seen_ids:
             continue
         seen_ids.add(item.id)
+        resolved = registry.resolve(item.type)
+        # If the model chose a generic icon, upgrade it from the label when possible
+        # (e.g. label "Vector DB" / "Redis" -> ai.vector_db / databases.redis).
+        if resolved in _GENERIC_TYPES and item.label:
+            for match in registry.match(item.label):
+                if match not in _GENERIC_TYPES:
+                    resolved = match
+                    break
         objects.append(
             SceneObject(
                 id=item.id,
-                type=registry.resolve(item.type),
+                type=resolved,
                 label=item.label or item.id,
                 position=item.position or _auto_pos(i, len(board.cast)),
             )
