@@ -22,8 +22,9 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen2.5-coder:7b"
     llm_temperature: float = 0.3
     llm_timeout: float = 60.0
-    llm_max_tokens: int = 1536
+    llm_max_tokens: int = 2048
     ollama_keep_alive: str = "30m"
+    ollama_num_ctx: int = 8192
 
     # ----- Speech-to-text -----
     whisper_model: str = "base"

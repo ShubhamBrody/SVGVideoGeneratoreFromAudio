@@ -1,6 +1,8 @@
 """Concrete LLM providers: OpenAI, Ollama, and the offline mock."""
 from __future__ import annotations
 
+import re
+
 import httpx
 
 from app.assets.registry import AssetRegistry
@@ -15,11 +17,18 @@ class MockProvider(LLMProvider):
     name = "mock"
 
     def __init__(self, registry: AssetRegistry) -> None:
+        self._registry = registry
         self._builder = MockSceneBuilder(registry)
 
     async def complete(self, system: str, user: str) -> str:  # noqa: ARG002
-        scene = self._builder.build(user)
-        return scene.model_dump_json(by_alias=True)
+        # A multi-sentence script becomes a speech-paced storyboard; a short prompt
+        # uses the templated scene builder (nicer fan-out visuals).
+        sentences = [s for s in re.split(r"(?<=[.!?])\s+", (user or "").strip()) if s.strip()]
+        if len(sentences) >= 3:
+            from app.scene.director import deterministic_storyboard
+
+            return deterministic_storyboard(user, self._registry).model_dump_json(by_alias=True)
+        return self._builder.build(user).model_dump_json(by_alias=True)
 
 
 class OpenAIProvider(LLMProvider):
@@ -68,6 +77,7 @@ class OllamaProvider(LLMProvider):
         self._timeout = settings.llm_timeout
         self._max_tokens = settings.llm_max_tokens
         self._keep_alive = settings.ollama_keep_alive
+        self._num_ctx = settings.ollama_num_ctx
 
     async def available(self) -> bool:
         try:
@@ -87,6 +97,7 @@ class OllamaProvider(LLMProvider):
             "options": {
                 "temperature": self._temperature,
                 "num_predict": self._max_tokens,
+                "num_ctx": self._num_ctx,
             },
             "messages": [
                 {"role": "system", "content": system},

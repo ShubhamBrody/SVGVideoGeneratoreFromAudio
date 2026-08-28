@@ -35,6 +35,16 @@ Letting an LLM emit raw SVG animation code is unreliable. Instead the LLM produc
 
 The renderer interprets this into a GSAP timeline. **LLM flexibility + deterministic animation.**
 
+### Scene Director: pacing follows the speech
+
+For a full narration or script, a **director** segments the speech into ordered *beats*
+(one per sentence/idea), defines the cast of entities + connections, and lists each beat's
+visual actions — with **no timing**. A deterministic compiler then joins the beats, sizing
+each beat's screen time from its narration length, so the video's pacing tracks the speech
+(a ~50-second explanation becomes a ~50-second video, not a 10-second flash). If no LLM is
+available the same storyboard is built deterministically from the sentences, so correct
+pacing is always guaranteed.
+
 ## Architecture
 
 ```
@@ -53,6 +63,7 @@ backend/  (FastAPI + Python)
 | Component | Location | Responsibility |
 | --- | --- | --- |
 | **LLM Gateway** | `backend/app/llm/` | Provider-agnostic (OpenAI / Ollama / offline mock). Text → Scene DSL. |
+| **Scene Director** | `backend/app/scene/director.py` | Segments narration into speech-paced *beats* (storyboard) and compiles them into a timeline; deterministic fallback. |
 | **Scene models** | `backend/app/models/scene.py` | Pydantic schema for the DSL — the contract between AI and renderer. |
 | **Validator / Critic** | `backend/app/scene/validator.py` | Repairs invalid edges/steps, remaps unknown asset types, reports warnings. |
 | **Asset registry** | `backend/app/assets/registry.py` | Loads the SVG library, exposes available types to the LLM and the UI. |
