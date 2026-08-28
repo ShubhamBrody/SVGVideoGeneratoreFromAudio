@@ -91,6 +91,9 @@ npm run dev
 
 Open the printed URL (default http://localhost:5173). The dev server proxies `/api` and `/ws` to the backend on port 8000.
 
+> Tip: on Windows you can run [scripts/dev-backend.ps1](scripts/dev-backend.ps1) and
+> [scripts/dev-frontend.ps1](scripts/dev-frontend.ps1) to set up and start each side in one step.
+
 ## Configuration
 
 All backend settings are environment variables (see [backend/.env.example](backend/.env.example)):
@@ -104,6 +107,23 @@ All backend settings are environment variables (see [backend/.env.example](backe
 | `OLLAMA_MODEL` | `qwen2.5-coder` | Ollama model |
 | `WHISPER_MODEL` | `base` | faster-whisper model size |
 | `CORS_ORIGINS` | `http://localhost:5173` | Allowed frontend origins |
+
+## Testing
+
+Backend unit + API tests run fully offline (they force the mock provider, no keys or network):
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest
+```
+
+Frontend type-check:
+
+```powershell
+cd frontend
+npm run typecheck
+```
 
 ## Roadmap
 
