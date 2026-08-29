@@ -36,3 +36,11 @@ async def get_asset_svg(asset_type: str) -> Response:
         f'viewBox="{asset.view_box}">{asset.svg}</svg>'
     )
     return Response(content=document, media_type="image/svg+xml")
+
+
+@router.post("/reload")
+async def reload_assets() -> dict:
+    """Re-read the asset library from disk (picks up freshly forged icons)."""
+    registry = get_registry()
+    registry.load()
+    return {"assets": len(registry.all()), "categories": registry.categories()}

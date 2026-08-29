@@ -14,7 +14,10 @@ import json
 import re
 from pathlib import Path
 
+import httpx
+
 from app import tts
+from app.assets.foundry import forge_assets
 from app.assets.registry import get_registry
 from app.config import Settings, get_settings
 from app.llm.gateway import build_gateway
@@ -65,8 +68,7 @@ async def generate_script(settings: Settings, topic: str) -> str:
     return script or _fallback_script(topic)
 
 
-async def _storyboard(settings: Settings, registry, script: str):
-    gateway = await build_gateway(settings, registry)
+async def _storyboard(gateway, registry, script: str):
     raw, provider = await gateway.complete(build_director_prompt(registry), script)
     board = parse_storyboard(raw)
     if board is None or not board.cast or not board.beats:
@@ -91,21 +93,30 @@ async def build(
     # 1. script
     if len(_sentences(topic_or_script)) >= 3:
         script = topic_or_script.strip()
-        print("[1/5] using the provided script")
+        print("[1/6] using the provided script")
     else:
-        print(f"[1/5] writing a script for: {topic_or_script!r}")
+        print(f"[1/6] writing a script for: {topic_or_script!r}")
         script = await generate_script(settings, topic_or_script)
     (out / "script.txt").write_text(script, encoding="utf-8")
     print(f"      script -> {len(_sentences(script))} sentences")
 
-    # 2. storyboard (director)
-    print("[2/5] directing the scene...")
-    board, provider = await _storyboard(settings, registry, script)
+    gateway = await build_gateway(settings, registry)
+
+    # 2. forge any visuals the topic needs that the built-in library lacks
+    print("[2/6] forging any missing visuals...")
+    new_types = await forge_assets(gateway, script, registry, settings)
+    if new_types:
+        registry.load()  # refresh so the director can pick the new icons
+    print(f"      +{len(new_types)} new assets" + (f": {', '.join(new_types)}" if new_types else ""))
+
+    # 3. storyboard (director)
+    print("[3/6] directing the scene...")
+    board, provider = await _storyboard(gateway, registry, script)
     beat_texts = [b.narration.strip() for b in board.beats if b.narration.strip()]
     print(f"      {len(board.cast)} objects, {len(beat_texts)} beats (provider: {provider})")
 
     # 3. one continuous, natural voiceover; beat timings come from word boundaries
-    print(f"[3/5] synthesizing a continuous voiceover ({voice})...")
+    print(f"[4/6] synthesizing a continuous voiceover ({voice})...")
     narration, durations, speech_total = await tts.synthesize_narration(
         beat_texts, out / "narration.mp3", voice
     )
@@ -134,14 +145,19 @@ async def build(
     if record:
         from app.recorder import record_scene
 
-        print("[4/5] recording the animation to MP4...")
+        try:  # ensure the running backend serves any forged icons (new or cached)
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                await client.post("http://localhost:5173/api/assets/reload")
+        except Exception:
+            pass
+        print("[5/6] recording the animation to MP4...")
         mp4 = await record_scene(scene, str(narration), out / "video.mp4")
         result["video"] = str(mp4)
         print(f"      video -> {mp4}")
         if upload:
             from app.youtube import upload_video
 
-            print("[5/5] uploading to YouTube...")
+            print("[6/6] uploading to YouTube...")
             result["youtube"] = upload_video(mp4, title=result["title"], description=script)
 
     return result

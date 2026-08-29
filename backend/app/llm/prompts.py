@@ -228,3 +228,57 @@ Topic: {topic}"""
 
 def build_script_prompt(topic: str) -> str:
     return SCRIPT_PROMPT.format(topic=topic.strip())
+
+
+# ------------------------------- asset foundry -------------------------------
+
+_ASSET_MANIFEST_TEMPLATE = """You are the "Asset Planner" for a visual explainer. Given a narration
+script, list the concrete VISUAL SUBJECTS the animation needs as distinct icons —
+the nouns a viewer should actually SEE on screen (characters, objects, places, things).
+
+You ALREADY have these icons, so DO NOT list anything they already cover:
+{{EXISTING}}
+
+Return ONLY a JSON array (no prose, no code fences). Each item looks like:
+{ "name": "king", "label": "King", "query": "king crown", "keywords": ["king", "monarch"] }
+- "name": short lowercase slug, unique, characters [a-z0-9_] only — the icon id.
+- "label": human caption shown under the icon.
+- "query": 2-4 concrete, iconic words to search an icon library (e.g. "fire dragon", "castle tower").
+- "keywords": words from the script that refer to this subject.
+
+RULES:
+- Only list CONCRETE, drawable subjects. No abstract ideas ("scalability", "a process").
+- ALWAYS give the story's MAIN characters and signature objects their own icon, even if a
+  generic person/box could loosely stand in (e.g. a king, a queen, a specific animal).
+- Merge true duplicates (all the knights -> one "knight"). Return 3 to 10 items, most important first.
+- Skip generic background nouns already covered by the existing icons above.
+
+Script:
+{{SCRIPT}}"""
+
+
+def build_asset_manifest_prompt(script: str, existing_labels: list[str]) -> str:
+    existing = ", ".join(sorted(set(existing_labels))) or "(none)"
+    return _ASSET_MANIFEST_TEMPLATE.replace("{{EXISTING}}", existing).replace(
+        "{{SCRIPT}}", script.strip()
+    )
+
+
+_SVG_TEMPLATE = """You are an expert icon illustrator. Draw a single, clean, flat vector ICON.
+
+Subject: {{SUBJECT}}
+Details: {{DESC}}
+
+Output ONLY one SVG document and nothing else:
+- Root element: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"> ... </svg>
+- Flat design, bold simple shapes, instantly readable at small size. Center the subject.
+- Start with a rounded card background:
+  <rect x="6" y="6" width="88" height="88" rx="18" fill="#334155"/>
+  then draw the subject on top in bright, legible colors (whites, blue #38bdf8, warm accents).
+- Only use <rect>, <circle>, <ellipse>, <path>, <polygon>, <line>, <g>. No <text>, no <image>,
+  no external references, no scripts.
+- Keep it under ~1600 characters. Valid, self-contained SVG only."""
+
+
+def build_svg_prompt(subject: str, description: str = "") -> str:
+    return _SVG_TEMPLATE.replace("{{SUBJECT}}", subject).replace("{{DESC}}", description or subject)

@@ -36,6 +36,13 @@ class Settings(BaseSettings):
     assets_dir: str = "assets"
     max_upload_mb: int = 25
 
+    # ----- Asset foundry (dynamic icon acquisition) -----
+    enable_asset_forge: bool = True
+    iconify_base: str = "https://api.iconify.design"
+    generated_assets_dir: str = "assets/generated"
+    asset_forge_max: int = 10
+    asset_forge_timeout: float = 12.0
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

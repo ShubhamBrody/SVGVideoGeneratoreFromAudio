@@ -49,6 +49,10 @@ youtube_token.json
 *.mp4
 *.webm
 
+# ---------- Auto-forged assets (regenerated on demand) ----------
+backend/assets/generated/
+assets/generated/
+
 # ---------- OS ----------
 .DS_Store
 Thumbs.db
