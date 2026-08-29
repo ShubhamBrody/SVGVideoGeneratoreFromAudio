@@ -52,6 +52,7 @@ class ActionType(str, Enum):
     travel = "travel"
     emphasize = "emphasize"
     shake = "shake"
+    camera = "camera"
     label = "label"
     narrate = "narrate"
     wait = "wait"

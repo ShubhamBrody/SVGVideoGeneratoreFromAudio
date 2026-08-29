@@ -17,12 +17,13 @@ from pathlib import Path
 import httpx
 
 from app import tts
-from app.assets.foundry import forge_assets
+from app.assets.foundry import forge_assets, forge_for_cast
 from app.assets.registry import get_registry
 from app.config import Settings, get_settings
 from app.llm.gateway import build_gateway
 from app.llm.prompts import build_director_prompt, build_script_prompt
 from app.llm.providers import OllamaProvider, OpenAIProvider
+from app.scene.camera import add_camera_moves
 from app.scene.director import compile_storyboard, deterministic_storyboard, parse_storyboard
 from app.scene.validator import validate_and_repair
 
@@ -68,8 +69,8 @@ async def generate_script(settings: Settings, topic: str) -> str:
     return script or _fallback_script(topic)
 
 
-async def _storyboard(gateway, registry, script: str):
-    raw, provider = await gateway.complete(build_director_prompt(registry), script)
+async def _storyboard(gateway, registry, script: str, max_tokens: int | None = None):
+    raw, provider = await gateway.complete(build_director_prompt(registry), script, max_tokens)
     board = parse_storyboard(raw)
     if board is None or not board.cast or not board.beats:
         board = deterministic_storyboard(script, registry)
@@ -111,9 +112,15 @@ async def build(
 
     # 3. storyboard (director)
     print("[3/6] directing the scene...")
-    board, provider = await _storyboard(gateway, registry, script)
+    board, provider = await _storyboard(gateway, registry, script, settings.director_max_tokens)
+    cast_new = await forge_for_cast(board.cast, gateway, registry, settings)
+    if cast_new:
+        registry.load()  # scene-accurate icons for cast still on a generic asset
     beat_texts = [b.narration.strip() for b in board.beats if b.narration.strip()]
-    print(f"      {len(board.cast)} objects, {len(beat_texts)} beats (provider: {provider})")
+    print(
+        f"      {len(board.cast)} objects, {len(beat_texts)} beats (provider: {provider})"
+        + (f", +{len(cast_new)} cast icons" if cast_new else "")
+    )
 
     # 3. one continuous, natural voiceover; beat timings come from word boundaries
     print(f"[4/6] synthesizing a continuous voiceover ({voice})...")
@@ -123,11 +130,13 @@ async def build(
     print(f"      {len(durations)} beats, {speech_total:.1f}s of flowing narration")
 
     # 4. audio-synced scene (beat timing = real speech timing, no artificial gaps)
-    scene = validate_and_repair(
-        compile_storyboard(
-            board, registry, script, beat_durations=durations, beat_pad=0.0, min_beat=0.4
-        ),
-        registry,
+    scene = add_camera_moves(
+        validate_and_repair(
+            compile_storyboard(
+                board, registry, script, beat_durations=durations, beat_pad=0.0, min_beat=0.4
+            ),
+            registry,
+        )
     )
     (out / "scene.json").write_text(scene.model_dump_json(by_alias=True, indent=2), encoding="utf-8")
     video_seconds = max((s.at + s.duration for s in scene.timeline), default=0.0)

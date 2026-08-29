@@ -255,7 +255,10 @@ Return ONLY a JSON array (no prose, no code fences). Each item looks like:
 - "keywords": words from the script that refer to this subject.
 
 RULES:
-- Only list CONCRETE, drawable subjects. No abstract ideas ("scalability", "a process").
+- List ONLY physical things you could photograph or draw as ONE object (people, animals,
+  places, tools, machines, vehicles, natural things). NEVER list abstract concepts, actions,
+  qualities, or algorithm parts — e.g. do NOT list "backtracking", "recursion", "iteration",
+  "row", "column", "diagonal", "a process", "a step", "complexity", or "a state".
 - ALWAYS give the story's MAIN characters and signature objects their own icon, even if a
   generic person/box could loosely stand in (e.g. a king, a queen, a specific animal).
 - Merge true duplicates (all the knights -> one "knight"). Return 3 to 10 items, most important first.

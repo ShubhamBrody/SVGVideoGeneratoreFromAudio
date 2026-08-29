@@ -20,7 +20,7 @@ class MockProvider(LLMProvider):
         self._registry = registry
         self._builder = MockSceneBuilder(registry)
 
-    async def complete(self, system: str, user: str) -> str:  # noqa: ARG002
+    async def complete(self, system: str, user: str, max_tokens: int | None = None) -> str:  # noqa: ARG002
         # A multi-sentence script becomes a speech-paced storyboard; a short prompt
         # uses the templated scene builder (nicer fan-out visuals).
         sentences = [s for s in re.split(r"(?<=[.!?])\s+", (user or "").strip()) if s.strip()]
@@ -51,12 +51,13 @@ class OpenAIProvider(LLMProvider):
     async def available(self) -> bool:
         return self._has_key
 
-    async def complete(self, system: str, user: str) -> str:
+    async def complete(self, system: str, user: str, max_tokens: int | None = None) -> str:
         try:
             resp = await self._client.chat.completions.create(
                 model=self._model,
                 temperature=self._temperature,
                 response_format={"type": "json_object"},
+                max_tokens=max_tokens or None,
                 messages=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},
@@ -87,7 +88,7 @@ class OllamaProvider(LLMProvider):
         except Exception:
             return False
 
-    async def complete(self, system: str, user: str) -> str:
+    async def complete(self, system: str, user: str, max_tokens: int | None = None) -> str:
         payload = {
             "model": self._model,
             "stream": False,
@@ -96,7 +97,7 @@ class OllamaProvider(LLMProvider):
             "keep_alive": self._keep_alive,
             "options": {
                 "temperature": self._temperature,
-                "num_predict": self._max_tokens,
+                "num_predict": max_tokens or self._max_tokens,
                 "num_ctx": self._num_ctx,
             },
             "messages": [

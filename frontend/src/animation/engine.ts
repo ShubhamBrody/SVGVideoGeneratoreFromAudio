@@ -28,6 +28,9 @@ interface StepContext {
   trafficEl: (id: string) => SVGPathElement | null;
   lengths: Map<string, number>;
   svg: SVGSVGElement;
+  camera: Element | null;
+  width: number;
+  height: number;
   cb: EngineCallbacks;
 }
 
@@ -45,6 +48,9 @@ export function buildSceneTimeline(
     trafficEl: (id) => byId<SVGPathElement>(`edge-traffic-${id}`),
     lengths: new Map<string, number>(),
     svg,
+    camera: byId('camera'),
+    width: scene.canvas.width,
+    height: scene.canvas.height,
     cb,
   };
 
@@ -73,6 +79,7 @@ export function buildSceneTimeline(
     const traffic = ctx.trafficEl(edge.id);
     if (traffic) gsap.set(traffic, { strokeDasharray: '10 14', strokeDashoffset: 0, opacity: 0 });
   }
+  if (ctx.camera) gsap.set(ctx.camera, { x: 0, y: 0, scale: 1, transformOrigin: '0px 0px' });
 
   const tl = gsap.timeline({
     paused: true,
@@ -282,11 +289,32 @@ function applyStep(
         dot.setAttribute('r', '8');
         dot.setAttribute('fill', '#38bdf8');
         dot.setAttribute('filter', 'url(#glow)');
-        ctx.svg.appendChild(dot);
+        (ctx.camera ?? ctx.svg).appendChild(dot);
         tl.set(dot, { x: fx, y: fy, opacity: 0 }, at);
         tl.to(dot, { opacity: 1, duration: 0.15 }, at);
         tl.to(dot, { x: tx, y: ty, duration: dur, ease: 'power1.inOut' }, at);
         tl.to(dot, { opacity: 0, duration: 0.25, onComplete: () => dot.remove() }, at + dur);
+      }
+      break;
+    }
+    case 'camera': {
+      const cam = ctx.camera;
+      if (cam) {
+        const z = Number((params.zoom as number) ?? 1);
+        const cx = Number((params.cx as number) ?? ctx.width / 2);
+        const cy = Number((params.cy as number) ?? ctx.height / 2);
+        tl.to(
+          cam,
+          {
+            x: ctx.width / 2 - z * cx,
+            y: ctx.height / 2 - z * cy,
+            scale: z,
+            transformOrigin: '0px 0px',
+            duration: dur,
+            ease: 'power2.inOut',
+          },
+          at,
+        );
       }
       break;
     }

@@ -53,7 +53,7 @@ export default function SceneCanvas({ svgRef }: Props) {
       </defs>
 
       {scene && (
-        <>
+        <g id="camera">
           <g className="edges" key={`edges-${scene.id}`}>
             {scene.edges.map((edge) => (
               <EdgeView key={edge.id} edge={edge} from={objectMap[edge.from]} to={objectMap[edge.to]} />
@@ -64,7 +64,7 @@ export default function SceneCanvas({ svgRef }: Props) {
               <SceneObjectView key={obj.id} object={obj} asset={assets[obj.type]} />
             ))}
           </g>
-        </>
+        </g>
       )}
     </svg>
   );

@@ -23,8 +23,9 @@ class Settings(BaseSettings):
     llm_temperature: float = 0.3
     llm_timeout: float = 60.0
     llm_max_tokens: int = 2048
+    director_max_tokens: int = 6000
     ollama_keep_alive: str = "30m"
-    ollama_num_ctx: int = 8192
+    ollama_num_ctx: int = 16384
 
     # ----- Speech-to-text -----
     whisper_model: str = "base"

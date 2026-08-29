@@ -103,18 +103,53 @@ class Storyboard(BaseModel):
     beats: list[StoryBeat] = Field(default_factory=list)
 
 
+def _close_truncated(text: str) -> str:
+    """Best-effort close of a JSON object/array that was truncated mid-stream."""
+    stack: list[str] = []
+    in_str = False
+    esc = False
+    for ch in text:
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            stack.append("}")
+        elif ch == "[":
+            stack.append("]")
+        elif ch in "}]" and stack:
+            stack.pop()
+    trimmed = (text + '"' if in_str else text).rstrip().rstrip(",")
+    return trimmed + "".join(reversed(stack))
+
+
 def parse_storyboard(raw: str) -> Storyboard | None:
     text = (raw or "").strip()
     if text.startswith("```"):
         text = re.sub(r"^```[a-zA-Z]*", "", text).strip().strip("`").strip()
-    match = _JSON_BLOCK.search(text)
-    if not match:
+    start = text.find("{")
+    if start == -1:
         return None
-    try:
-        board = Storyboard.model_validate(json.loads(match.group(0)))
-    except Exception:
-        return None
-    return board if board.cast and board.beats else None
+    candidate = text[start:]
+    attempts: list[str] = []
+    match = _JSON_BLOCK.search(candidate)
+    if match:
+        attempts.append(match.group(0))
+    attempts.append(_close_truncated(candidate))  # salvage a truncated storyboard
+    for attempt in attempts:
+        try:
+            board = Storyboard.model_validate(json.loads(attempt))
+        except Exception:
+            continue
+        if board.cast and board.beats:
+            return board
+    return None
 
 
 # ------------------------------- the compiler --------------------------------
@@ -165,9 +200,9 @@ def compile_storyboard(
             continue
         seen_ids.add(item.id)
         resolved = registry.resolve(item.type)
-        # If the model chose a generic icon, upgrade it from the label when possible
-        # (e.g. label "Vector DB" / "Redis" -> ai.vector_db / databases.redis).
-        if resolved in _GENERIC_TYPES and item.label:
+        # Prefer an asset that matches what the object IS (its label), so a "Queen"
+        # gets the queen icon even when the director picked something generic or wrong.
+        if item.label:
             for match in registry.match(item.label):
                 if match not in _GENERIC_TYPES:
                     resolved = match

@@ -52,6 +52,25 @@ class AssetSpec(BaseModel):
     keywords: list[str] = Field(default_factory=list)
 
 
+# Generic library types a forged icon should replace, and abstract words that are NOT
+# drawable objects (algorithm parts, qualities) — we refuse to forge these.
+_GENERIC_TYPES = {"generic.box", "generic.cache", "generic.database", "generic.cloud"}
+_ABSTRACT = {
+    "backtracking", "backtrack", "recursion", "recursive", "iteration", "iterate",
+    "loop", "complexity", "algorithm", "process", "procedure", "logic", "condition",
+    "constraint", "comparison", "evaluation", "decision", "step", "phase", "stage",
+    "state", "function", "method", "variable", "index", "pointer", "row", "column",
+    "diagonal", "cell", "case", "solution", "approach", "concept", "idea", "rule",
+    "order", "sequence", "count", "sum", "total", "result", "output", "input",
+    "data", "value", "element", "item", "flow", "event", "task",
+}
+
+
+def _is_abstract(spec: AssetSpec) -> bool:
+    words = re.findall(r"[a-z]+", f"{spec.name} {spec.label}".lower())
+    return bool(words) and all(w in _ABSTRACT for w in words)
+
+
 # ------------------------------- parsing / io --------------------------------
 
 def _slug(name: str) -> str:
@@ -172,30 +191,16 @@ async def _acquire(
 
 # --------------------------------- public ------------------------------------
 
-async def forge_assets(
-    gateway: LLMGateway, script: str, registry: AssetRegistry, settings: Settings
+async def _forge_specs(
+    specs: list[AssetSpec], gateway: LLMGateway, registry: AssetRegistry, settings: Settings
 ) -> list[str]:
-    """Plan and acquire any missing icons for ``script``. Returns the new asset types.
-
-    Writes normalized SVGs under the generated assets dir. Safe to call repeatedly:
-    subjects that already exist (in the registry or on disk) are skipped. Never raises
-    on network/LLM failure — it just returns whatever it managed to create.
-    """
-    if not settings.enable_asset_forge:
-        return []
-    existing = [a.label for a in registry.all()]
-    try:
-        raw, _ = await gateway.complete(build_asset_manifest_prompt(script, existing), script)
-        specs = parse_manifest(raw)[: settings.asset_forge_max]
-    except Exception:
-        specs = []
+    """Acquire an icon for each concrete spec; skip abstract or already-present ones."""
+    specs = [s for s in specs if _slug(s.name) and not _is_abstract(s)][: settings.asset_forge_max]
     if not specs:
         return []
-
     gen_dir = _generated_dir(settings)
     gen_dir.mkdir(parents=True, exist_ok=True)
     new_types: list[str] = []
-
     async with httpx.AsyncClient(
         timeout=settings.asset_forge_timeout, follow_redirects=True
     ) as client:
@@ -214,5 +219,48 @@ async def forge_assets(
                 encoding="utf-8",
             )
             new_types.append(type_)
-
     return new_types
+
+
+async def forge_assets(
+    gateway: LLMGateway, script: str, registry: AssetRegistry, settings: Settings
+) -> list[str]:
+    """Plan (via LLM) and acquire the concrete icons a ``script`` needs.
+
+    Never raises on network/LLM failure — returns whatever it managed to create.
+    """
+    if not settings.enable_asset_forge:
+        return []
+    existing = [a.label for a in registry.all()]
+    try:
+        raw, _ = await gateway.complete(build_asset_manifest_prompt(script, existing), script)
+        specs = parse_manifest(raw)
+    except Exception:
+        specs = []
+    return await _forge_specs(specs, gateway, registry, settings)
+
+
+async def forge_for_cast(
+    cast, gateway: LLMGateway, registry: AssetRegistry, settings: Settings
+) -> list[str]:
+    """Forge scene-accurate icons for director cast members still on a generic asset.
+
+    Runs AFTER the director, so visuals match exactly what the scene shows (each
+    object's label becomes the search query) instead of a pre-guessed manifest.
+    """
+    if not settings.enable_asset_forge:
+        return []
+    specs: list[AssetSpec] = []
+    seen: set[str] = set()
+    for obj in cast:
+        label = (getattr(obj, "label", "") or "").strip()
+        if not label:
+            continue
+        # already have a good (non-generic) icon for what this object is?
+        if any(m not in _GENERIC_TYPES for m in registry.match(label)):
+            continue
+        slug = _slug(label)
+        if slug and slug not in seen and not registry.has(f"generated.{slug}"):
+            seen.add(slug)
+            specs.append(AssetSpec(name=slug, label=label, query=label))
+    return await _forge_specs(specs, gateway, registry, settings)

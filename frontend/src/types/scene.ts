@@ -21,6 +21,7 @@ export type ActionType =
   | 'travel'
   | 'emphasize'
   | 'shake'
+  | 'camera'
   | 'label'
   | 'narrate'
   | 'wait';

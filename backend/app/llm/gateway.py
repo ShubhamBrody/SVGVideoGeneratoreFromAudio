@@ -18,17 +18,17 @@ class LLMGateway:
     def provider_name(self) -> str:
         return self._provider.name
 
-    async def complete(self, system: str, user: str) -> tuple[str, str]:
+    async def complete(self, system: str, user: str, max_tokens: int | None = None) -> tuple[str, str]:
         """Return ``(raw_text, provider_label)``."""
         if self._provider is self._fallback:
-            return await self._fallback.complete(system, user), self._fallback.name
+            return await self._fallback.complete(system, user, max_tokens), self._fallback.name
         try:
-            out = await self._provider.complete(system, user)
+            out = await self._provider.complete(system, user, max_tokens)
             if not out or not out.strip():
                 raise LLMError("empty response")
             return out, self._provider.name
         except Exception as exc:  # noqa: BLE001 - degrade gracefully
-            out = await self._fallback.complete(system, user)
+            out = await self._fallback.complete(system, user, max_tokens)
             return out, f"mock (fallback: {type(exc).__name__})"
 
 

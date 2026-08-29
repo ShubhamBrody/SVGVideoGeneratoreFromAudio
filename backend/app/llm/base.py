@@ -19,7 +19,7 @@ class LLMProvider(abc.ABC):
     name: str = "base"
 
     @abc.abstractmethod
-    async def complete(self, system: str, user: str) -> str:
+    async def complete(self, system: str, user: str, max_tokens: int | None = None) -> str:
         """Return the model's raw text response."""
 
     async def available(self) -> bool:  # noqa: D401 - simple predicate
