@@ -32,7 +32,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # ---------- Model / cache artifacts ----------
-models/
+/models/
 *.bin
 *.pt
 *.onnx
