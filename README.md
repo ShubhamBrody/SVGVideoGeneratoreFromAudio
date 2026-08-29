@@ -148,14 +148,44 @@ cd frontend
 npm run typecheck
 ```
 
+## Full pipeline: topic → narrated video → YouTube
+
+A one-command pipeline turns a topic (or a full script) into a narrated MP4 and,
+optionally, uploads it to YouTube:
+
+```
+topic ─► ① script (LLM) ─► ② scene (director) ─► ③ per-beat TTS (edge-tts)
+      ─► ④ audio-synced animation recorded to MP4 (Playwright + ffmpeg) ─► ⑤ YouTube
+```
+
+The voiceover is synthesized **per beat**, and each clip's real duration paces the
+animation — so the video length matches the narration exactly (no drift).
+
+```powershell
+cd backend
+pip install -r requirements-pipeline.txt
+python -m playwright install chromium          # one-time
+
+# needs the frontend dev server running (npm run dev) for --record
+python -m app.pipeline "How a load balancer spreads traffic across servers" --record
+```
+
+Outputs land in `backend/output/`: `script.txt`, `scene.json`, `narration.mp3`, and
+`video.mp4` (1280×720 H.264 + AAC). Requires `ffmpeg` on PATH.
+
+**YouTube upload** (optional) — `pip install -r requirements-youtube.txt`, drop a Google
+OAuth desktop-client `client_secret.json` in `backend/` (see [backend/app/youtube.py](backend/app/youtube.py)),
+then add `--upload`. Uploads default to *unlisted*.
+
 ## Roadmap
 
 - [x] Voice → text → Scene DSL → animated SVG (MVP)
 - [x] Offline mock generator (runs with no API keys)
-- [x] Deterministic validator / critic pass
+- [x] Deterministic validator / critic pass + layout de-overlap
+- [x] Speech-paced Scene Director (beats from narration)
+- [x] Full pipeline: topic → script → TTS → audio-synced MP4 → YouTube
 - [ ] RAG grounding on official docs (Kubernetes, Kafka, AWS …)
 - [ ] Conversational scene editing ("make the failed pod red")
-- [ ] Export to MP4 / WebM / GIF / Lottie
 - [ ] GitHub / Confluence connectors for architecture explanations
 
 ## License

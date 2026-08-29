@@ -17,6 +17,21 @@ export default function App() {
     void loadAssets();
   }, [loadAssets]);
 
+  // Chrome-free full-bleed playback for the video recorder (URL: /?render).
+  const renderMode =
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('render');
+
+  if (renderMode) {
+    return (
+      <div className="h-screen w-screen bg-canvas text-slate-100">
+        <main className="relative w-full h-full overflow-hidden">
+          <SceneCanvas svgRef={svgRef} />
+          <SubtitleOverlay />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-canvas text-slate-100">
       <Header />

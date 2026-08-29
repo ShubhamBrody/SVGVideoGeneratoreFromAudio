@@ -206,3 +206,21 @@ def build_director_prompt(registry: AssetRegistry) -> str:
     asset_lines = "\n".join(f"- {a.type}: {a.label}" for a in registry.all())
     actions = ", ".join(a.value for a in ActionType)
     return _DIRECTOR_TEMPLATE.replace("{{ASSETS}}", asset_lines).replace("{{ACTIONS}}", actions)
+
+
+SCRIPT_PROMPT = """You are a technical explainer scriptwriter. Write a clear, engaging spoken
+narration that explains the topic to a developer audience, as a voiceover.
+
+Rules:
+- 6 to 10 short sentences, ONE idea per sentence.
+- Conversational and concrete, like narrating a diagram. No headings, no bullet
+  points, no markdown, no stage directions.
+- Build a narrative arc: set up the components, explain how they interact, show a
+  key event or failure, then the resolution.
+- Output ONLY the narration text (plain sentences).
+
+Topic: {topic}"""
+
+
+def build_script_prompt(topic: str) -> str:
+    return SCRIPT_PROMPT.format(topic=topic.strip())

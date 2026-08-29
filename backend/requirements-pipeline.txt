@@ -1,0 +1,5 @@
+# Full video pipeline: neural TTS + headless recording.
+# After installing, run once:  python -m playwright install chromium
+-r requirements.txt
+edge-tts>=6.1.0
+playwright>=1.40.0

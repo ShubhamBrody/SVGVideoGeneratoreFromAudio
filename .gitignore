@@ -41,6 +41,14 @@ whisper_cache/
 uploads/
 tmp/
 
+# ---------- Pipeline output / secrets ----------
+backend/output/
+output/
+client_secret.json
+youtube_token.json
+*.mp4
+*.webm
+
 # ---------- OS ----------
 .DS_Store
 Thumbs.db

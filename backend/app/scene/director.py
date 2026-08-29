@@ -139,8 +139,18 @@ def _auto_pos(index: int, total: int) -> Position:
     return Position(x=min(1180, max(90, x)), y=min(640, max(90, y)))
 
 
-def compile_storyboard(board: Storyboard, registry: AssetRegistry, text: str) -> Scene:
-    """Join storyboard beats into one speech-paced Scene."""
+def compile_storyboard(
+    board: Storyboard,
+    registry: AssetRegistry,
+    text: str,
+    beat_durations: list[float] | None = None,
+) -> Scene:
+    """Join storyboard beats into one speech-paced Scene.
+
+    If ``beat_durations`` (real TTS clip lengths) are given, each beat lasts that
+    long plus a short pause, so the animation syncs to the actual voiceover.
+    Otherwise beat length is estimated from the narration word count.
+    """
     objects: list[SceneObject] = []
     seen_ids: set[str] = set()
     for i, item in enumerate(board.cast):
@@ -180,9 +190,12 @@ def compile_storyboard(board: Storyboard, registry: AssetRegistry, text: str) ->
     connected: set[str] = set()
     t = 0.0
 
-    for beat in board.beats:
+    for beat_index, beat in enumerate(board.beats):
         narration = beat.narration.strip()
-        dur = _beat_seconds(narration)
+        if beat_durations and beat_index < len(beat_durations) and beat_durations[beat_index] > 0:
+            dur = max(_MIN_BEAT, beat_durations[beat_index] + 0.6)  # voiceover + short pause
+        else:
+            dur = _beat_seconds(narration)
         if narration:
             timeline.append(
                 TimelineStep(action=ActionType.narrate, target="", at=round(t, 2),
