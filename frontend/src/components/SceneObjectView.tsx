@@ -17,23 +17,25 @@ export default function SceneObjectView({ object, asset }: Props) {
   return (
     <g id={`obj-${object.id}`} className="scene-object" style={{ opacity: 0 }} data-state={object.state}>
       <circle id={`ring-${object.id}`} className="status-ring" r={ring} />
-      {asset ? (
-        <svg
-          x={-w / 2}
-          y={-h / 2}
-          width={w}
-          height={h}
-          viewBox={asset.view_box}
-          dangerouslySetInnerHTML={{ __html: asset.svg }}
-        />
-      ) : (
-        <g>
-          <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={16} fill="#475569" />
-          <text textAnchor="middle" dominantBaseline="middle" fontSize="11" fill="#e2e8f0">
-            {object.type}
-          </text>
-        </g>
-      )}
+      <g id={`icon-${object.id}`}>
+        {asset ? (
+          <svg
+            x={-w / 2}
+            y={-h / 2}
+            width={w}
+            height={h}
+            viewBox={asset.view_box}
+            dangerouslySetInnerHTML={{ __html: asset.svg }}
+          />
+        ) : (
+          <g>
+            <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={16} fill="#475569" />
+            <text textAnchor="middle" dominantBaseline="middle" fontSize="11" fill="#e2e8f0">
+              {object.type}
+            </text>
+          </g>
+        )}
+      </g>
       <text className="scene-object-label" textAnchor="middle" y={h / 2 + 24}>
         {object.label}
       </text>

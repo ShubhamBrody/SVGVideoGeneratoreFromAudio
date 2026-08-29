@@ -39,6 +39,7 @@ _EDGE_STYLE_VALUES = {e.value for e in EdgeStyle}
 _EDGE_ACTIONS = {"connect", "disconnect", "traffic"}
 _OBJECT_ACTIONS = {
     "appear", "disappear", "remove", "move", "highlight", "pulse", "change_state",
+    "rotate", "scale", "orbit", "travel", "emphasize", "shake",
 }
 _JSON_BLOCK = re.compile(r"\{.*\}", re.DOTALL)
 
@@ -124,10 +125,12 @@ def _beat_seconds(narration: str) -> float:
 
 
 def _action_duration(action: str, beat_dur: float) -> float:
-    if action in {"traffic", "pulse"}:
+    if action in {"traffic", "pulse", "orbit"}:
         return max(1.2, beat_dur * 0.7)
-    if action == "move":
-        return 0.8
+    if action in {"move", "travel", "rotate"}:
+        return max(0.8, beat_dur * 0.5)
+    if action == "scale":
+        return 0.6
     return 0.5
 
 

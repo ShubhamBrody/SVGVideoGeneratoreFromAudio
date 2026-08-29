@@ -132,7 +132,14 @@ AVAILABLE ASSET TYPES (use "type" exactly; else generic.box / generic.database):
 
 ACTIONS you may use inside a beat (NO "at"/"duration" — timing is automatic):
 - appear / disappear / remove       -> target = object id
-- move                              -> target = object id, params.to = { "x": n, "y": n }
+- move                              -> target = object id, params.to = { "x": n, "y": n } (glide to a new spot)
+- travel                           -> target = SOURCE object id, params.to = TARGET object id
+                                       (a glowing token flies from source to target — data, a message, a value)
+- rotate                           -> target = object id, params.turns = 1 (spin in place: gears, cycles, loading)
+- scale                            -> target = object id, params.to = 1.4 to grow / 0.6 to shrink
+- orbit                            -> target = object id, params.around = { "x": n, "y": n }, params.revolutions = 1
+- emphasize                        -> target = object id (quick pop + glow to draw the eye)
+- shake                            -> target = object id (jitter: impact, error, collision)
 - highlight / pulse                 -> target = object id (emphasis)
 - change_state                      -> target = object id, params.state = "unhealthy|healthy|highlighted|normal"
 - connect / disconnect / traffic    -> target = connection id (traffic = flowing data)
@@ -140,10 +147,11 @@ ACTIONS you may use inside a beat (NO "at"/"duration" — timing is automatic):
 RULES:
 1. Create ONE beat per sentence or distinct idea, IN THE ORDER they are spoken.
    Put that sentence (lightly cleaned, <=140 chars) in beat.narration.
-2. Cover the WHOLE explanation — a detailed script should yield many beats
-   (typically 6-14) and 5-12 cast objects. Do not collapse it into a few beats.
-3. In the beat where an entity is first mentioned, "appear" it. Then in later
-   beats "connect"/"traffic"/"change_state"/"move"/"remove" as the story dictates.
+2. Cover the WHOLE explanation — a detailed script should yield MANY beats (10-20 for a
+   long script) and 5-12 cast objects. Never collapse it into just a few.
+3. In the beat where an entity is first mentioned, "appear" it; afterwards keep it ALIVE
+   with motion (move/travel/orbit/rotate/scale) and emphasis (emphasize/pulse/highlight/
+   shake/change_state). Aim for 2-4 actions per beat so the scene always evolves.
 4. ids are short and unique (e.g. "c1", "p0", "e1"). Every connection.from/to and
    every action.target MUST reference an existing cast id / connection id.
 5. position is the CENTER of an object; x in 90..1180, y in 90..640, >=120px apart.

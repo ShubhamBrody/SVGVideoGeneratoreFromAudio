@@ -28,6 +28,12 @@ _OBJECT_ACTIONS = {
     ActionType.highlight,
     ActionType.pulse,
     ActionType.change_state,
+    ActionType.rotate,
+    ActionType.scale,
+    ActionType.orbit,
+    ActionType.travel,
+    ActionType.emphasize,
+    ActionType.shake,
 }
 _TARGETLESS = {ActionType.narrate, ActionType.wait}
 

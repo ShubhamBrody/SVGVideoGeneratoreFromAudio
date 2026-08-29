@@ -15,6 +15,12 @@ export type ActionType =
   | 'disconnect'
   | 'traffic'
   | 'pulse'
+  | 'rotate'
+  | 'scale'
+  | 'orbit'
+  | 'travel'
+  | 'emphasize'
+  | 'shake'
   | 'label'
   | 'narrate'
   | 'wait';

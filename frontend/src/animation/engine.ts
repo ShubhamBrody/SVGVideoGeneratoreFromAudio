@@ -22,10 +22,12 @@ const STATE_COLORS: Record<string, string> = {
 
 interface StepContext {
   objEl: (id: string) => Element | null;
+  iconEl: (id: string) => Element | null;
   ringEl: (id: string) => Element | null;
   pathEl: (id: string) => SVGPathElement | null;
   trafficEl: (id: string) => SVGPathElement | null;
   lengths: Map<string, number>;
+  svg: SVGSVGElement;
   cb: EngineCallbacks;
 }
 
@@ -37,10 +39,12 @@ export function buildSceneTimeline(
   const byId = <T extends Element>(id: string) => svg.querySelector<T>(`[id="${id}"]`);
   const ctx: StepContext = {
     objEl: (id) => byId(`obj-${id}`),
+    iconEl: (id) => byId(`icon-${id}`),
     ringEl: (id) => byId(`ring-${id}`),
     pathEl: (id) => byId<SVGPathElement>(`edge-path-${id}`),
     trafficEl: (id) => byId<SVGPathElement>(`edge-traffic-${id}`),
     lengths: new Map<string, number>(),
+    svg,
     cb,
   };
 
@@ -204,6 +208,85 @@ function applyStep(
         const travel = 24 * Math.max(3, Math.round(dur * 3));
         tl.to(traffic, { strokeDashoffset: `-=${travel}`, duration: dur, ease: 'none' }, at);
         tl.to(traffic, { opacity: 0, duration: 0.3 }, at + dur);
+      }
+      break;
+    }
+    case 'rotate': {
+      const icon = ctx.iconEl(target);
+      const turns = Number((params.turns as number) ?? 1);
+      const degrees = Number((params.degrees as number) ?? turns * 360);
+      if (icon)
+        tl.to(icon, { rotation: `+=${degrees}`, transformOrigin: '50% 50%', duration: dur, ease: 'power1.inOut' }, at);
+      break;
+    }
+    case 'scale': {
+      const icon = ctx.iconEl(target);
+      const to = Number((params.to as number) ?? (params.factor as number) ?? 1.3);
+      if (icon)
+        tl.to(icon, { scale: to, transformOrigin: '50% 50%', duration: dur, ease: 'back.out(1.6)' }, at);
+      break;
+    }
+    case 'emphasize': {
+      const icon = ctx.iconEl(target);
+      const ring = ctx.ringEl(target);
+      if (icon)
+        tl.to(icon, { scale: 1.18, transformOrigin: '50% 50%', duration: dur / 2, yoyo: true, repeat: 1, ease: 'sine.inOut' }, at);
+      if (ring) {
+        tl.set(ring, { stroke: '#38bdf8' }, at);
+        tl.fromTo(ring, { opacity: 0.8, scale: 1 }, { opacity: 0, scale: 1.5, duration: Math.max(0.5, dur), ease: 'power1.out' }, at);
+      }
+      break;
+    }
+    case 'shake': {
+      const icon = ctx.iconEl(target);
+      if (icon)
+        tl.to(icon, { keyframes: { x: [0, -7, 6, -5, 4, -2, 0] }, duration: Math.max(0.4, dur), ease: 'none' }, at);
+      break;
+    }
+    case 'orbit': {
+      const el = ctx.objEl(target);
+      const around = params.around as { x: number; y: number } | undefined;
+      if (el && around) {
+        const startX = (gsap.getProperty(el, 'x') as number) ?? 0;
+        const startY = (gsap.getProperty(el, 'y') as number) ?? 0;
+        const radius = Number((params.radius as number) ?? (Math.hypot(startX - around.x, startY - around.y) || 90));
+        const revs = Number((params.revolutions as number) ?? 1);
+        const start = Math.atan2(startY - around.y, startX - around.x);
+        const proxy = { a: start };
+        tl.to(
+          proxy,
+          {
+            a: start + Math.PI * 2 * revs,
+            duration: dur,
+            ease: 'none',
+            onUpdate: () =>
+              gsap.set(el, {
+                x: around.x + radius * Math.cos(proxy.a),
+                y: around.y + radius * Math.sin(proxy.a),
+              }),
+          },
+          at,
+        );
+      }
+      break;
+    }
+    case 'travel': {
+      const from = ctx.objEl(String((params.from as string) ?? target));
+      const to = ctx.objEl(String((params.to as string) ?? ''));
+      if (from && to) {
+        const fx = gsap.getProperty(from, 'x') as number;
+        const fy = gsap.getProperty(from, 'y') as number;
+        const tx = gsap.getProperty(to, 'x') as number;
+        const ty = gsap.getProperty(to, 'y') as number;
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('r', '8');
+        dot.setAttribute('fill', '#38bdf8');
+        dot.setAttribute('filter', 'url(#glow)');
+        ctx.svg.appendChild(dot);
+        tl.set(dot, { x: fx, y: fy, opacity: 0 }, at);
+        tl.to(dot, { opacity: 1, duration: 0.15 }, at);
+        tl.to(dot, { x: tx, y: ty, duration: dur, ease: 'power1.inOut' }, at);
+        tl.to(dot, { opacity: 0, duration: 0.25, onComplete: () => dot.remove() }, at + dur);
       }
       break;
     }
