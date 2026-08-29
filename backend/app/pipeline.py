@@ -14,7 +14,7 @@ import json
 import re
 from pathlib import Path
 
-from app import media, tts
+from app import tts
 from app.assets.registry import get_registry
 from app.config import Settings, get_settings
 from app.llm.gateway import build_gateway
@@ -104,18 +104,21 @@ async def build(
     beat_texts = [b.narration.strip() for b in board.beats if b.narration.strip()]
     print(f"      {len(board.cast)} objects, {len(beat_texts)} beats (provider: {provider})")
 
-    # 3. per-beat TTS
-    print(f"[3/5] synthesizing voiceover ({voice})...")
-    beats_audio = await tts.synthesize_beats(beat_texts, out / "audio", voice)
-    durations = [d for _, d in beats_audio]
-    print(f"      {len(durations)} clips, {sum(durations):.1f}s of speech")
+    # 3. one continuous, natural voiceover; beat timings come from word boundaries
+    print(f"[3/5] synthesizing a continuous voiceover ({voice})...")
+    narration, durations, speech_total = await tts.synthesize_narration(
+        beat_texts, out / "narration.mp3", voice
+    )
+    print(f"      {len(durations)} beats, {speech_total:.1f}s of flowing narration")
 
-    # 4. audio-synced scene + narration track
+    # 4. audio-synced scene (beat timing = real speech timing, no artificial gaps)
     scene = validate_and_repair(
-        compile_storyboard(board, registry, script, beat_durations=durations), registry
+        compile_storyboard(
+            board, registry, script, beat_durations=durations, beat_pad=0.0, min_beat=0.4
+        ),
+        registry,
     )
     (out / "scene.json").write_text(scene.model_dump_json(by_alias=True, indent=2), encoding="utf-8")
-    narration = media.concat_narration([p for p, _ in beats_audio], out / "narration.mp3")
     video_seconds = max((s.at + s.duration for s in scene.timeline), default=0.0)
     print(f"      scene {video_seconds:.1f}s | narration {tts.audio_duration(narration):.1f}s (synced)")
 

@@ -77,6 +77,71 @@ async def synthesize_beats(
     return results
 
 
+async def synthesize_narration(
+    beat_texts: list[str], out_path: str | Path, voice: str = DEFAULT_VOICE
+) -> tuple[Path, list[float], float]:
+    """Synthesize all beats as ONE continuous, natural voiceover.
+
+    Returns ``(mp3_path, beat_durations, total_seconds)``. Beat durations come from
+    edge-tts word-boundary timings, so the animation can sync to the real speech
+    without chopping it into separate clips (which is what makes it sound choppy).
+    """
+    try:
+        import edge_tts
+    except Exception as exc:  # pragma: no cover
+        raise TTSUnavailable("edge-tts not installed (pip install edge-tts)") from exc
+
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    parts: list[str] = []
+    for text in beat_texts:
+        text = (text or "").strip()
+        if not text:
+            continue
+        if text[-1] not in ".!?":
+            text += "."
+        parts.append(text)
+    if not parts:
+        out_path.write_bytes(b"")
+        return out_path, [], 0.0
+
+    word_counts = [len(p.split()) for p in parts]
+    full_text = " ".join(parts)
+
+    audio = bytearray()
+    offsets: list[float] = []  # start time (s) of each spoken word
+    try:
+        communicate = edge_tts.Communicate(full_text, voice)
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio.extend(chunk["data"])
+            elif chunk["type"] == "WordBoundary":
+                offsets.append(chunk["offset"] / 10_000_000.0)  # 100-ns ticks -> seconds
+    except Exception as exc:
+        raise TTSUnavailable(f"edge-tts synthesis failed: {exc}") from exc
+
+    out_path.write_bytes(bytes(audio))
+    total = audio_duration(out_path)
+
+    total_words = max(1, sum(word_counts))
+    starts: list[float] = []
+    cumulative = 0
+    for count in word_counts:
+        if offsets:
+            starts.append(offsets[min(cumulative, len(offsets) - 1)])
+        else:
+            starts.append(total * cumulative / total_words)
+        cumulative += count
+    starts[0] = 0.0  # anchor the first beat to the start of the audio
+
+    durations = [
+        max(0.1, (starts[i + 1] if i + 1 < len(starts) else total) - starts[i])
+        for i in range(len(starts))
+    ]
+    return out_path, durations, total
+
+
 async def list_voices(prefix: str = "en-") -> list[str]:
     try:
         import edge_tts

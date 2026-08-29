@@ -208,16 +208,20 @@ def build_director_prompt(registry: AssetRegistry) -> str:
     return _DIRECTOR_TEMPLATE.replace("{{ASSETS}}", asset_lines).replace("{{ACTIONS}}", actions)
 
 
-SCRIPT_PROMPT = """You are a technical explainer scriptwriter. Write a clear, engaging spoken
-narration that explains the topic to a developer audience, as a voiceover.
+SCRIPT_PROMPT = """You are a technical explainer scriptwriter. Write a spoken narration that
+explains the topic to a developer audience — as a warm, natural voiceover.
 
 Rules:
-- 6 to 10 short sentences, ONE idea per sentence.
-- Conversational and concrete, like narrating a diagram. No headings, no bullet
-  points, no markdown, no stage directions.
-- Build a narrative arc: set up the components, explain how they interact, show a
-  key event or failure, then the resolution.
-- Output ONLY the narration text (plain sentences).
+- Write FLOWING, connected narration that sounds like a person explaining out loud,
+  NOT a list of facts. Link ideas with natural connectors (so, then, because, which
+  means, as a result, now, meanwhile).
+- Vary sentence length and rhythm; let some sentences run a little longer. Aim for
+  roughly 120-180 words total.
+- Conversational and concrete. No headings, no bullet points, no markdown, no stage
+  directions, no numbered steps.
+- Build a narrative arc: set the scene, explain how the pieces interact, reach a key
+  moment or failure, then resolve it.
+- Output ONLY the narration text as flowing prose.
 
 Topic: {topic}"""
 

@@ -144,12 +144,16 @@ def compile_storyboard(
     registry: AssetRegistry,
     text: str,
     beat_durations: list[float] | None = None,
+    beat_pad: float = 0.6,
+    min_beat: float = _MIN_BEAT,
 ) -> Scene:
     """Join storyboard beats into one speech-paced Scene.
 
-    If ``beat_durations`` (real TTS clip lengths) are given, each beat lasts that
-    long plus a short pause, so the animation syncs to the actual voiceover.
-    Otherwise beat length is estimated from the narration word count.
+    If ``beat_durations`` (real TTS timings) are given, each beat lasts that long
+    plus ``beat_pad``, clamped to ``min_beat`` — so the animation syncs to the actual
+    voiceover. For a single continuous narration pass, use ``beat_pad=0`` and a small
+    ``min_beat`` so beats match the speech exactly. Otherwise length is estimated
+    from the narration word count.
     """
     objects: list[SceneObject] = []
     seen_ids: set[str] = set()
@@ -193,7 +197,7 @@ def compile_storyboard(
     for beat_index, beat in enumerate(board.beats):
         narration = beat.narration.strip()
         if beat_durations and beat_index < len(beat_durations) and beat_durations[beat_index] > 0:
-            dur = max(_MIN_BEAT, beat_durations[beat_index] + 0.6)  # voiceover + short pause
+            dur = max(min_beat, beat_durations[beat_index] + beat_pad)
         else:
             dur = _beat_seconds(narration)
         if narration:
